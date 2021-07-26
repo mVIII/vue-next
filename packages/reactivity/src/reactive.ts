@@ -11,6 +11,10 @@ import {
   shallowCollectionHandlers,
   shallowReadonlyCollectionHandlers
 } from './collectionHandlers'
+
+import { track, trigger } from './effect'
+import { TrackOpTypes, TriggerOpTypes } from './operations'
+
 import { UnwrapRef, Ref } from './ref'
 
 export const enum ReactiveFlags {
@@ -232,4 +236,37 @@ export function toRaw<T>(observed: T): T {
 export function markRaw<T extends object>(value: T): T {
   def(value, ReactiveFlags.SKIP, true)
   return value
+}
+
+export type CustomReactiveFactory = (
+  track: (target: object, track: TrackOpTypes, key: unknown) => void,
+  trigger: (
+    target: object,
+    type: TriggerOpTypes,
+    key?: unknown,
+    newValue?: unknown,
+    oldValue?: unknown,
+    oldTarget?: Map<unknown, unknown> | Set<unknown>
+  ) => void
+) => {
+  get: (target: Object, key: string | number | symbol, receiver: object) => any
+  set: (
+    target: Object,
+    key: string | number | symbol,
+    value: unknown,
+    receiver: object
+  ) => boolean
+}
+
+export function customReactive<T extends object>(
+  target: T,
+  factory: CustomReactiveFactory
+): T
+export function customReactive<T extends object>(
+  target: T,
+  factory: CustomReactiveFactory
+): T {
+  const { get, set } = factory(track, trigger)
+  Reflect.set(target, ReactiveFlags.IS_REACTIVE, true)
+  return createReactiveObject(target, false, { get, set }, {}, reactiveMap)
 }

@@ -24,6 +24,7 @@ export {
   shallowReadonly,
   markRaw,
   toRaw,
+  customReactive,
   // effect
   effect,
   stop,

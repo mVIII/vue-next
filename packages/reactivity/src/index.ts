@@ -24,6 +24,7 @@ export {
   shallowReadonly,
   markRaw,
   toRaw,
+  customReactive,
   ReactiveFlags,
   DeepReadonly,
   UnwrapNestedRefs

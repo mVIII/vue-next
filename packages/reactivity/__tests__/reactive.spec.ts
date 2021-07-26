@@ -1,7 +1,14 @@
 import { ref, isRef } from '../src/ref'
-import { reactive, isReactive, toRaw, markRaw } from '../src/reactive'
+import {
+  reactive,
+  isReactive,
+  toRaw,
+  markRaw,
+  customReactive
+} from '../src/reactive'
 import { computed } from '../src/computed'
 import { effect } from '../src/effect'
+import { TrackOpTypes, TriggerOpTypes } from '../src/operations'
 
 describe('reactivity/reactive', () => {
   test('Object', () => {
@@ -271,5 +278,47 @@ describe('reactivity/reactive', () => {
     }
     const observed = reactive(original)
     expect(isReactive(observed)).toBe(false)
+  })
+
+  test('customReactive', () => {
+    const obj = { _foo: 1 }
+
+    let _trigger: () => void
+
+    const custom = customReactive(obj, (track, trigger) => {
+      return {
+        get(target: Object, key: string | number | symbol, receiver: object) {
+          track(target, TrackOpTypes.GET, key)
+          return Reflect.get(target, key)
+        },
+        set(
+          target: Object,
+          key: string | number | symbol,
+          value: unknown,
+          receiver: object
+        ): boolean {
+          const result = Reflect.set(target, key, value, receiver)
+          _trigger = () => {
+            trigger(target, TriggerOpTypes.SET, key, value, receiver)
+          }
+          return result
+        }
+      }
+    })
+
+    expect(isReactive(custom)).toBe(true)
+
+    let dummy
+    effect(() => {
+      dummy = custom._foo
+    })
+    expect(dummy).toBe(1)
+
+    custom._foo = 2
+    expect(dummy).toBe(1)
+
+    _trigger!()
+
+    expect(dummy).toBe(2)
   })
 })
